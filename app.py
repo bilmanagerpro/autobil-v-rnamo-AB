@@ -14,30 +14,30 @@ if "bil_fakturor" not in st.session_state:
 if "utgifter" not in st.session_state:
     st.session_state.utgifter = pd.DataFrame(columns=["Kategori", "Belopp (SEK)", "Datum"])
 
-# --- القائمة الجانبية (بشكل عمودي واحد تحت الثاني) ---
-st.sidebar.title("📌 القائمة الرئيسية")
+# --- SIDOMENY (Svenska) ---
+st.sidebar.title("📌 Huvudmeny")
 menu = st.sidebar.radio(
-    "Välj sektion (اختر القسم):",
+    "Välj sektion:",
     [
-        "🚗 Lagerhantering (إدارة المخزون)", 
-        "📄 عقد وفاتورة بيع السيارات", 
-        "💸 المصروفات", 
-        "📊 التقارير والأرباح"
+        "🚗 Lagerhantering", 
+        "📄 Bilförsäljningsfaktura", 
+        "💸 Utgifter", 
+        "📊 Rapporter & Resultat"
     ]
 )
 
 st.title("🚗 Autobil Värnamo AB - System för bilförsäljning")
 
 # --- 1. LAGERHANTERING ---
-if menu == "🚗 Lagerhantering (إدارة المخزون)":
-    st.header("🚗 Lagerhantering (إدارة المخزون)")
+if menu == "🚗 Lagerhantering":
+    st.header("🚗 Lagerhantering")
     with st.form("bil_form"):
         col1, col2 = st.columns(2)
         with col1:
             bilmodell = st.text_input("Bilmodell / Årsmodell")
-            reg_nr = st.text_input("REG. nummer (رقم اللوحة)")
+            reg_nr = st.text_input("REG. nummer")
         with col2:
-            matarstallning = st.text_input("Mätarställning / mil (عداد الكيلومترات)")
+            matarstallning = st.text_input("Mätarställning / mil")
             inkopspris = st.text_input("Inköpspris (SEK)")
             rep_kostnad = st.text_input("Reparationskostnad (SEK)")
             status = st.selectbox("Fordonstatus", ["I lager", "Såld"])
@@ -46,40 +46,40 @@ if menu == "🚗 Lagerhantering (إدارة المخزون)":
         if submit_bil and bilmodell:
             new_row = pd.DataFrame({"ID": [len(st.session_state.bilar) + 1], "Bilmodell": [bilmodell], "Reg.nr": [reg_nr], "Mätarställning": [matarstallning], "Inköpspris": [inkopspris], "Rep.kostnad": [rep_kostnad], "Status": [status]})
             st.session_state.bilar = pd.concat([st.session_state.bilar, new_row], ignore_index=True)
-            st.success("تم إضافة السيارة بنجاح!")
+            st.success("Bilen har lagts till!")
 
-    st.subheader("السيارات الموجودة في المخزون (حدد الصف واحذف عند الحاجة)")
+    st.subheader("Bilar i lager (Markera raden och tryck Delete för att radera)")
     if not st.session_state.bilar.empty:
         st.session_state.bilar = st.data_editor(st.session_state.bilar, num_rows="dynamic", use_container_width=True)
     else:
-        st.info("لا توجد سيارات مسجلة بعد.")
+        st.info("Inga bilar registrerade än.")
 
 # --- 2. BILFÖRSÄLJNINGSFAKTURA ---
-elif menu == "📄 عقد وفاتورة بيع السيارات":
+elif menu == "📄 Bilförsäljningsfaktura":
     st.header("📄 Bilförsäljning - Faktura / Köpekontrakt")
     
     with st.form("bil_faktura_form"):
-        st.subheader("1. معلومات السيارة (Fordon)")
+        st.subheader("1. Fordonsinformation")
         col1, col2 = st.columns(2)
         with col1:
             fakturanr = st.text_input("Faktura nr:", value=f"FAK-{len(st.session_state.bil_fakturor) + 1001}")
             reg_nummer = st.text_input("REG. nummer")
             arsmodell = st.text_input("Årsmodell / tillverk.")
         with col2:
-            datum = st.date_input("Datum (التاريخ)", datetime.date.today())
+            datum = st.date_input("Datum", datetime.date.today())
             matar = st.text_input("Mätarställning / mil")
             fordonstatus = st.text_input("Fordonstatus / Bilmärke", value="Begagnad")
 
-        st.subheader("2. معلومات المشتري (Köpare)")
+        st.subheader("2. Köparens information")
         col3, col4 = st.columns(2)
         with col3:
-            namn = st.text_input("Namn (اسم المشتري)")
-            gatuadress = st.text_input("Gatuadress (العنوان)")
+            namn = st.text_input("Namn")
+            gatuadress = st.text_input("Gatuadress")
         with col4:
             personnummer = st.text_input("Org. / Personnummer")
             postnummer_ort = st.text_input("Postnummer / Ort")
 
-        st.subheader("3. معلومات الدفع (Betalning)")
+        st.subheader("3. Betalningsinformation")
         col5, col6, col7 = st.columns(3)
         with col5:
             pris_sek = st.text_input("Pris i SEK")
@@ -88,11 +88,11 @@ elif menu == "📄 عقد وفاتورة بيع السيارات":
         with col7:
             kontant_insats = st.text_input("Kontant insats i SEK")
 
-        st.subheader("4. الشروط والملاحظات (Fordonsskick & Anteckningar)")
+        st.subheader("4. Fordonsskick & Anteckningar")
         standard_villkor = "Köparen har provkört bilen och godkänner den i förevisat skick. Autobil Värnamo AB frånskriver sig ansvar/garantier mot ex. antal nycklar, krock, skador, om lackering, antalet ägare och miltal. Köparen godkänner bilen i befintligt skick och godkänner ovanstående genom undertecknande av avtal. Bolaget tillämpar vinstmarginalbeskattning (VMB) för handel med begagnade varor enligt 20 kap mervärdesskattelagen (2023:200)."
         anteckningar = st.text_area("Anteckningar", value=standard_villkor)
 
-        submit_bil_fak = st.form_submit_button("حفظ وحفظ العقد الرسمي")
+        submit_bil_fak = st.form_submit_button("Spara kontrakt")
 
         if submit_bil_fak and namn:
             new_bil_fak = pd.DataFrame({
@@ -103,12 +103,12 @@ elif menu == "📄 عقد وفاتورة بيع السيارات":
                 "KontantInsats": [kontant_insats], "Anteckningar": [anteckningar]
             })
             st.session_state.bil_fakturor = pd.concat([st.session_state.bil_fakturor, new_bil_fak], ignore_index=True)
-            st.success("تم حفظ عقد الفاتورة بنجاح!")
+            st.success("Kontrakt sparat!")
 
     st.divider()
-    st.subheader("🖨️ معاينة وطباعة الفواتير المحفوظة")
+    st.subheader("🖨️ Förhandsgranska och skriv ut")
     if not st.session_state.bil_fakturor.empty:
-        selected_fak = st.selectbox("اختر رقم الفاتورة لعرض المعاينة الرسمية:", st.session_state.bil_fakturor["Fakturanr"])
+        selected_fak = st.selectbox("Välj fakturanummer:", st.session_state.bil_fakturor["Fakturanr"])
         row = st.session_state.bil_fakturor[st.session_state.bil_fakturor["Fakturanr"] == selected_fak].iloc[0]
 
         st.markdown(f"""
@@ -180,15 +180,15 @@ elif menu == "📄 عقد وفاتورة بيع السيارات":
         """, unsafe_allow_html=True)
 
         st.write("")
-        if st.button("حذف هذه الفاتورة"):
+        if st.button("Radera faktura"):
             st.session_state.bil_fakturor = st.session_state.bil_fakturor[st.session_state.bil_fakturor["Fakturanr"] != selected_fak]
             st.rerun()
     else:
-        st.info("لا توجد فواتير بيع سيارات مسجلة بعد.")
+        st.info("Inga fakturor sparade.")
 
 # --- 3. UTGIFTER ---
-elif menu == "💸 المصروفات":
-    st.header("💸 Utgifter & Inköp")
+elif menu == "💸 Utgifter":
+    st.header("💸 Utgifter")
     with st.form("utgift_form"):
         kategori = st.selectbox("Kategori", ["Reservdelar", "Hyra lokal", "Verktyg", "El & Värme", "Övrigt"])
         belopp = st.text_input("Belopp (SEK)")
@@ -198,15 +198,15 @@ elif menu == "💸 المصروفات":
         if submit_utgift and belopp:
             new_utg = pd.DataFrame({"Kategori": [kategori], "Belopp (SEK)": [belopp], "Datum": [str(utgift_datum)]})
             st.session_state.utgifter = pd.concat([st.session_state.utgifter, new_utg], ignore_index=True)
-            st.success("تم حفظ المصروف بنجاح!")
+            st.success("Utgift sparad!")
 
-    st.subheader("المصروفات المسجلة")
+    st.subheader("Registrerade utgifter")
     if not st.session_state.utgifter.empty:
         st.session_state.utgifter = st.data_editor(st.session_state.utgifter, num_rows="dynamic", use_container_width=True)
     else:
-        st.info("لا توجد مصروفات مسجلة.")
+        st.info("Inga utgifter registrerade.")
 
 # --- 4. RAPPORTER & RESULTAT ---
-elif menu == "📊 التقارير والأرباح":
+elif menu == "📊 Rapporter & Resultat":
     st.header("📊 Ekonomisk Sammanställning")
-    st.info("جميع الحقول أصبحت نصية وتتيح لك الإدخال اليدوي الحر.")
+    st.info("Alla fält är nu textbaserade för manuell inmatning.")
