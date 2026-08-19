@@ -84,11 +84,17 @@ if menu == "🚗 Lagerhantering":
     st.subheader("📦 Bilar i systemet")
 
     if not st.session_state.bilar.empty:
-        # تعديل مباشر وآمن للبيانات الحقيقية المحفوظة
         edited_df = st.data_editor(
             st.session_state.bilar, 
             num_rows="fixed", 
             use_container_width=True, 
+            column_config={
+                "Status": st.column_config.SelectboxColumn(
+                    "Status",
+                    options=["I lager", "Såld"],
+                    required=True
+                )
+            },
             key="lager_editor"
         )
 
@@ -111,7 +117,6 @@ if menu == "🚗 Lagerhantering":
 
         st.divider()
 
-        # تصفية الجدول بناءً على البحث دون أن يؤثر على البيانات الأصلية
         display_bilar = st.session_state.bilar.copy()
         if search_query:
             display_bilar = display_bilar[
@@ -142,4 +147,4 @@ if menu == "🚗 Lagerhantering":
         else:
             st.info("Inga sålda bilar än.")
     else:
-        st.info("Inga bilar registreradas än.")
+        st.info("Inga bilar registrerade än.")
