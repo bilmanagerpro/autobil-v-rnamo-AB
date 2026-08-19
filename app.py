@@ -87,15 +87,15 @@ if menu == "🚗 Lagerhantering":
         st.session_state.bilar = st.session_state.bilar.dropna(subset=["Bilmodell", "Reg.nr"], how="any")
         st.session_state.bilar = st.session_state.bilar[st.session_state.bilar["Bilmodell"].str.lower() != "none"]
 
-    df_display = st.session_state.bilar.copy()
+    master_df = st.session_state.bilar.copy()
     if search_query:
-        df_display = df_display[
-            df_display["Reg.nr"].str.contains(search_query, case=False, na=False)
+        master_df = master_df[
+            master_df["Reg.nr"].astype(str).str.contains(search_query, case=False, na=False)
         ]
 
-    if not df_display.empty:
+    if not master_df.empty:
         edited_df = st.data_editor(
-            df_display, 
+            master_df, 
             num_rows="fixed", 
             use_container_width=True, 
             key="lager_editor"
@@ -120,32 +120,28 @@ if menu == "🚗 Lagerhantering":
 
         st.divider()
 
-        col_a, col_b = st.columns(2)
+        st.markdown(
+            "### <span style='color:green;'>🟢 Bilar i lager</span>",
+            unsafe_allow_html=True,
+        )
+        avail = st.session_state.bilar[
+            st.session_state.bilar["Status"] == "I lager"
+        ]
+        if not avail.empty:
+            st.dataframe(avail, use_container_width=True)
+        else:
+            st.info("Inga bilar i lager just nu.")
 
-        with col_a:
-            st.markdown(
-                "### <span style='color:green;'>🟢 Bilar i lager</span>",
-                unsafe_allow_html=True,
-            )
-            avail = st.session_state.bilar[
-                st.session_state.bilar["Status"] == "I lager"
-            ]
-            if not avail.empty:
-                st.dataframe(avail, use_container_width=True)
-            else:
-                st.info("Inga bilar i lager just nu.")
-
-        with col_b:
-            st.markdown(
-                "### <span style='color:red;'>🔴 Sålda bilar</span>",
-                unsafe_allow_html=True,
-            )
-            sold = st.session_state.bilar[
-                st.session_state.bilar["Status"] == "Såld"
-            ]
-            if not sold.empty:
-                st.dataframe(sold, use_container_width=True)
-            else:
-                st.info("Inga sålda bilar än.")
+        st.markdown(
+            "### <span style='color:red;'>🔴 Sålda bilar</span>",
+            unsafe_allow_html=True,
+        )
+        sold = st.session_state.bilar[
+            st.session_state.bilar["Status"] == "Såld"
+        ]
+        if not sold.empty:
+            st.dataframe(sold, use_container_width=True)
+        else:
+            st.info("Inga sålda bilar än.")
     else:
-        st.info("Inga bilar registrerade än.")
+        st.info("Inga bilar hittades.")
