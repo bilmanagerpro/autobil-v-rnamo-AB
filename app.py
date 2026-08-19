@@ -1,70 +1,143 @@
 import pandas as pd
 import streamlit as st
 
-st.set_page_config(page_title="Autobil Värnamo AB", page_icon="🚗", layout="wide")
+st.set_page_config(
+    page_title="Autobil Värnamo AB - Lagerhantering", page_icon="🚗", layout="wide"
+)
 
-# --- INITIALISERING ---
+# --- INITIALISERING AV LAGER ---
 if "bilar" not in st.session_state:
-    st.session_state.bilar = pd.DataFrame(columns=["ID", "Bilmodell", "Reg.nr", "Mätarställning", "Inköpspris", "Rep.kostnad", "Status"])
+  st.session_state.bilar = pd.DataFrame(columns=[
+      "ID",
+      "Bilmodell",
+      "Reg.nr",
+      "Mätarställning",
+      "Inköpspris",
+      "Rep.kostnad",
+      "Totalt",
+      "Status",
+  ])
 
-if "utgifter" not in st.session_state:
-    st.session_state.utgifter = pd.DataFrame(columns=["Kategori", "Belopp (SEK)", "Datum"])
-
+# --- SIDOMENY ---
 st.sidebar.title("📌 Huvudmeny")
-menu = st.sidebar.radio("Välj sektion:", ["🚗 Lagerhantering", "💸 Utgifter & Ekonomi"])
+menu = st.sidebar.radio("Välj sektion:", ["🚗 Lagerhantering"])
 
-st.title("🚗 Autobil Värnamo AB")
+st.title("🚗 Autobil Värnamo AB - Lagerhantering")
 
-# --- 1. LAGERHANTERING ---
 if menu == "🚗 Lagerhantering":
-    st.header("📦 Lagerhantering")
+  # Layout: Left side for adding cars, Right side for searching
+  col_form, col_search = st.columns([2, 1])
+
+  with col_form:
+    st.subheader("Registrera ny bil i lager")
     with st.form("bil_form", clear_on_submit=True):
-        col1, col2 = st.columns(2)
-        with col1:
-            bilmodell = st.text_input("Bilmodell")
-            reg_nr = st.text_input("REG. nummer")
-            inkopspris = st.number_input("Inköpspris (SEK)", min_value=0)
-        with col2:
-            rep_kostnad = st.number_input("Reparationskostnad (SEK)", min_value=0)
-            status = st.selectbox("Status", ["I lager", "Såld"])
-        
-        submit_bil = st.form_submit_button("Lägg till bil")
-        if submit_bil:
-            new_row = pd.DataFrame({"ID": [len(st.session_state.bilar)+1], "Bilmodell": [bilmodell], "Reg.nr": [reg_nr], "Mätarställning": [0], "Inköpspris": [inkopspris], "Rep.kostnad": [rep_kostnad], "Status": [status]})
-            st.session_state.bilar = pd.concat([st.session_state.bilar, new_row], ignore_index=True)
+      c1, c2 = st.columns(2)
+      with c1:
+        bilmodell = st.text_input("Bilmodell / Årsmodell")
+        reg_nr = st.text_input("REG. nummer")
+        matarstallning = st.text_input("Mätarställning / mil")
+      with c2:
+        inkopspris_str = st.text_input("Inköpspris (SEK)")
+        rep_kostnad_str = st.text_input("Reparationskostnad (SEK)")
+        status = st.selectbox("Status", ["I lager", "Såld"])
 
-    st.subheader("Bilar i systemet")
-    st.session_state.bilar = st.data_editor(st.session_state.bilar, use_container_width=True)
+      submit_bil = st.form_submit_button("Lägg till bil i lager")
+      if submit_bil:
+        if bilmodell and reg_nr:
+          try:
+            inköp = float(inkopspris_str) if inkopspris_str else 0.0
+          except:
+            inköp = 0.0
+          try:
+            rep = float(rep_kostnad_str) if rep_kostnad_str else 0.0
+          except:
+            rep = 0.0
 
-# --- 2. UTGIFTER & EKONOMI ---
-elif menu == "💸 Utgifter & Ekonomi":
-    st.header("💸 Utgifter & Resultat")
-    
-    # قسم المصاريف
-    with st.form("utgift_form"):
-        kategori = st.text_input("Kategori (t.ex. Hyra, Verktyg)")
-        belopp = st.number_input("Belopp (SEK)", min_value=0)
-        if st.form_submit_button("Lägg till utgift"):
-            st.session_state.utgifter = pd.concat([st.session_state.utgifter, pd.DataFrame({"Kategori": [kategori], "Belopp (SEK)": [belopp], "Datum": [str(pd.Timestamp.now().date())]})], ignore_index=True)
-    
-    # عرض المجموع المالي
+          totalt = inköp + rep
+
+          new_id = (
+              int(st.session_state.bilar["ID"].max()) + 1
+              if not st.session_state.bilar.empty
+              else 1
+          )
+          new_row = pd.DataFrame({
+              "ID": [new_id],
+              "Bilmodell": [bilmodell],
+              "Reg.nr": [reg_nr],
+              "Mätarställning": [matarstallning],
+              "Inköpspris": [inkopspris_str],
+              "Rep.kostnad": [rep_kostnad_str],
+              "Totalt": [str(totalt)],
+              "Status": [status],
+          })
+          st.session_state.bilar = pd.concat(
+              [st.session_state.bilar, new_row], ignore_index=True
+          )
+          st.success("Bilen har lagts till i lager!")
+        else:
+          st.warning("Vänligen fyll i åtminstone Bilmodell och REG. nummer.")
+
+  with col_search:
+    st.subheader("Sök fordon")
+    search_query = st.text_input("Sök med reg.nr")
+
+  st.divider()
+  st.subheader("📦 Bilar i systemet")
+
+  df_display = st.session_state.bilar.copy()
+  if search_query:
+    df_display = df_display[
+        df_display["Reg.nr"].str.contains(search_query, case=False, na=False)
+    ]
+
+  if not df_display.empty:
+    edited_df = st.data_editor(
+        df_display, use_container_width=True, key="lager_editor"
+    )
+
+    # Update session state with edited rows and recalculate total
+    for _, row in edited_df.iterrows():
+      orig_id = row["ID"]
+      try:
+        i_val = float(str(row["Inköpspris"]))
+      except:
+        i_val = 0.0
+      try:
+        r_val = float(str(row["Rep.kostnad"]))
+      except:
+        r_val = 0.0
+      row["Totalt"] = str(i_val + r_val)
+
+      st.session_state.bilar.loc[
+          st.session_state.bilar["ID"] == orig_id
+      ] = row
+
+    st.divider()
+
     col_a, col_b = st.columns(2)
-    
+
     with col_a:
-        st.subheader("📊 Ekonomisk översikt")
-        total_utgifter = st.session_state.utgifter["Belopp (SEK)"].sum()
-        total_inkop = st.session_state.bilar["Inköpspris"].sum()
-        total_rep = st.session_state.bilar["Rep.kostnad"].sum()
-        
-        st.metric("Totala Inköpskostnader", f"{total_inkop} SEK")
-        st.metric("Totala Reparationer", f"{total_rep} SEK")
-        st.metric("Övriga Utgifter", f"{total_utgifter} SEK")
-        st.divider()
-        st.metric("TOTAL UTGIFT (Alla poster)", f"{total_inkop + total_rep + total_utgifter} SEK")
+      st.markdown(
+          "### <span style='color:green;'>🟢 Bilar i lager</span>",
+          unsafe_allow_html=True,
+      )
+      avail = st.session_state.bilar[
+          st.session_state.bilar["Status"] == "I lager"
+      ]
+      if not avail.empty:
+        st.dataframe(avail, use_container_width=True)
+      else:
+        st.info("Inga bilar i lager just nu.")
 
     with col_b:
-        st.subheader("📋 Detaljerade tabeller")
-        st.write("Utgifter:")
-        st.dataframe(st.session_state.utgifter, use_container_width=True)
-        st.write("Bil-status:")
-        st.dataframe(st.session_state.bilar[["Bilmodell", "Status", "Inköpspris", "Rep.kostnad"]], use_container_width=True)
+      st.markdown(
+          "### <span style='color:red;'>🔴 Sålda bilar</span>",
+          unsafe_allow_html=True,
+      )
+      sold = st.session_state.bilar[st.session_state.bilar["Status"] == "Såld"]
+      if not sold.empty:
+        st.dataframe(sold, use_container_width=True)
+      else:
+        st.info("Inga sålda bilar än.")
+  else:
+    st.info("Inga bilar hittades.")
