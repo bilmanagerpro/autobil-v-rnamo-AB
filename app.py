@@ -5,7 +5,6 @@ st.set_page_config(
     page_title="Autobil Värnamo AB - Lagerhantering", page_icon="🚗", layout="wide"
 )
 
-# --- INITIALISERING AV LAGER ---
 if "bilar" not in st.session_state:
     st.session_state.bilar = pd.DataFrame(columns=[
         "ID",
@@ -18,7 +17,6 @@ if "bilar" not in st.session_state:
         "Status",
     ])
 
-# --- SIDOMENY ---
 st.sidebar.title("📌 Huvudmeny")
 menu = st.sidebar.radio("Välj sektion:", ["🚗 Lagerhantering"])
 
@@ -57,21 +55,20 @@ if menu == "🚗 Lagerhantering":
                     if st.session_state.bilar.empty or "ID" not in st.session_state.bilar.columns:
                         new_id = 1
                     else:
-                        max_id = pd.to_numeric(st.session_state.bilar["ID"], errors="coerce").max()
-                        new_id = int(max_id) + 1 if pd.notna(max_id) else 1
+                        valid_ids = pd.to_numeric(st.session_state.bilar["ID"], errors="coerce")
+                        new_id = int(valid_ids.max()) + 1 if not valid_ids.isna().all() else 1
 
                     new_row = pd.DataFrame({
                         "ID": [new_id],
-                        "Bilmodell": [bilmodell],
-                        "Reg.nr": [reg_nr],
-                        "Mätarställning": [matarstallning],
-                        "Inköpspris": [inkopspris_str],
-                        "Rep.kostnad": [rep_kostnad_str],
+                        "Bilmodell": [str(bilmodell)],
+                        "Reg.nr": [str(reg_nr)],
+                        "Mätarställning": [str(matarstallning)],
+                        "Inköpspris": [str(inkopspris_str)],
+                        "Rep.kostnad": [str(rep_kostnad_str)],
                         "Totalt": [str(totalt)],
-                        "Status": [status],
+                        "Status": [str(status)],
                     })
                     
-                    # ربط مباشر وفوري مع الذاكرة الأساسية للسيارات
                     st.session_state.bilar = pd.concat(
                         [st.session_state.bilar, new_row], ignore_index=True
                     )
@@ -86,6 +83,10 @@ if menu == "🚗 Lagerhantering":
     st.divider()
     st.subheader("📦 Bilar i systemet")
 
+    if not st.session_state.bilar.empty:
+        st.session_state.bilar = st.session_state.bilar.dropna(subset=["Bilmodell", "Reg.nr"], how="any")
+        st.session_state.bilar = st.session_state.bilar[st.session_state.bilar["Bilmodell"].str.lower() != "none"]
+
     df_display = st.session_state.bilar.copy()
     if search_query:
         df_display = df_display[
@@ -94,7 +95,10 @@ if menu == "🚗 Lagerhantering":
 
     if not df_display.empty:
         edited_df = st.data_editor(
-            df_display, use_container_width=True, key="lager_editor"
+            df_display, 
+            num_rows="fixed", 
+            use_container_width=True, 
+            key="lager_editor"
         )
 
         for _, row in edited_df.iterrows():
@@ -109,9 +113,10 @@ if menu == "🚗 Lagerhantering":
                 r_val = 0.0
             row["Totalt"] = str(i_val + r_val)
 
-            st.session_state.bilar.loc[
-                st.session_state.bilar["ID"] == orig_id
-            ] = row
+            mask = st.session_state.bilar["ID"] == orig_id
+            if mask.any():
+                for col in st.session_state.bilar.columns:
+                    st.session_state.bilar.loc[mask, col] = row[col]
 
         st.divider()
 
@@ -143,4 +148,4 @@ if menu == "🚗 Lagerhantering":
             else:
                 st.info("Inga sålda bilar än.")
     else:
-        st.info("Inga bilar hittades.")
+        st.info("Inga bilar registrerade än.")
